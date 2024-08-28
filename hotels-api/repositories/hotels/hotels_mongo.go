@@ -1,12 +1,12 @@
-package repositories
+package hotels
 
 import (
-	"backend/dao"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"hotels-api/dao/hotels"
 	"time"
 )
 
@@ -42,7 +42,7 @@ func NewHotelsMongo() HotelsMongo {
 }
 
 func (repo HotelsMongo) GetHotelByID(id int64) (
-	dao.HotelDAO, error) {
+	hotels.HotelDAO, error) {
 
 	ctx := context.Background()
 
@@ -52,14 +52,14 @@ func (repo HotelsMongo) GetHotelByID(id int64) (
 		FindOne(ctx, bson.M{"id": id})
 	if result.Err() != nil {
 		fmt.Println("Error: ", result.Err())
-		return dao.HotelDAO{}, result.Err()
+		return hotels.HotelDAO{}, result.Err()
 	}
 
-	var hotelDAO dao.HotelDAO
+	var hotelDAO hotels.HotelDAO
 	err := result.Decode(&hotelDAO)
 	if err != nil {
 		fmt.Println("Error: ", result.Err())
-		return dao.HotelDAO{}, result.Err()
+		return hotels.HotelDAO{}, result.Err()
 	}
 
 	return hotelDAO, nil

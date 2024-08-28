@@ -1,15 +1,17 @@
-package repositories
+package hotels
 
-import "backend/dao"
+import (
+	"hotels-api/dao/hotels"
+)
 
 type HotelsMock struct{}
 
 func NewHotelsMock() HotelsMock {
 	return HotelsMock{}
 }
-func (HotelsMock) GetHotelByID(id int64) (dao.HotelDAO, error) {
+func (HotelsMock) GetHotelByID(id int64) (hotels.HotelDAO, error) {
 
-	return dao.HotelDAO{
+	return hotels.HotelDAO{
 		ID:        id,
 		Name:      "HotelMock",
 		Address:   "Mock Address",

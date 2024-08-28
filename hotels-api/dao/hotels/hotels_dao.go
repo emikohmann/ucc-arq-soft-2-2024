@@ -1,4 +1,4 @@
-package dao
+package hotels
 
 type HotelDAO struct {
 	ID        int64    `json:"id" bson:"id"`
