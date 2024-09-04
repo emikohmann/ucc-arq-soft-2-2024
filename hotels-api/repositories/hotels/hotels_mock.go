@@ -1,23 +1,33 @@
 package hotels
 
 import (
-	"hotels-api/dao/hotels"
+	"context"
+	hotelsDAO "hotels-api/dao/hotels"
 )
 
-type HotelsMock struct{}
-
-func NewHotelsMock() HotelsMock {
-	return HotelsMock{}
+type Mock struct {
+	docs map[int64]hotelsDAO.Hotel
 }
-func (HotelsMock) GetHotelByID(id int64) (hotels.HotelDAO, error) {
 
-	return hotels.HotelDAO{
-		ID:        id,
-		Name:      "HotelMock",
-		Address:   "Mock Address",
-		City:      "Mock City",
-		State:     "Mock Stats",
-		Rating:    5,
-		Amenities: nil,
-	}, nil
+func NewMock() Mock {
+	return Mock{
+		docs: map[int64]hotelsDAO.Hotel{
+			1: {
+				ID:      1,
+				Name:    "Holiday Inn",
+				Address: "Mock Address",
+				City:    "Mock City",
+				State:   "Mock State",
+				Rating:  5,
+				Amenities: []string{
+					"Swimming Pool",
+					"Free Wi-Fi",
+				},
+			},
+		},
+	}
+}
+
+func (repository Mock) GetHotelByID(ctx context.Context, id int64) (hotelsDAO.Hotel, error) {
+	return repository.docs[id], nil
 }

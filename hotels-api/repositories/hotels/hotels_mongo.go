@@ -6,61 +6,62 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"hotels-api/dao/hotels"
-	"time"
+	hotelsDAO "hotels-api/dao/hotels"
+	"log"
 )
 
-type HotelsMongo struct {
-	Client *mongo.Client
+type MongoConfig struct {
+	Host       string
+	Port       string
+	Username   string
+	Password   string
+	Database   string
+	Collection string
 }
 
-func NewHotelsMongo() HotelsMongo {
-	// Creamos un contexto
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		10*time.Second)
-	defer cancel()
-
-	// Creamos las opciones
-	clientOptions := options.Client().
-		ApplyURI("mongodb://localhost:27017").
-		SetAuth(options.Credential{
-			Username: "root",
-			Password: "root",
-		})
-
-	// Conectamos el cliente
-	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		fmt.Println("Error: ", err)
-		return HotelsMongo{}
-	}
-
-	return HotelsMongo{
-		Client: client,
-	}
+type Mongo struct {
+	client     *mongo.Client
+	database   string
+	collection string
 }
 
-func (repo HotelsMongo) GetHotelByID(id int64) (
-	hotels.HotelDAO, error) {
+const (
+	connectionURI = "mongodb://%s:%s"
+)
+
+func NewMongo(config MongoConfig) Mongo {
+	credentials := options.Credential{
+		Username: config.Username,
+		Password: config.Password,
+	}
 
 	ctx := context.Background()
+	uri := fmt.Sprintf(connectionURI, config.Host, config.Port)
+	cfg := options.Client().ApplyURI(uri).SetAuth(credentials)
 
-	result := repo.Client.
-		Database("hotels").
-		Collection("hotels").
-		FindOne(ctx, bson.M{"id": id})
-	if result.Err() != nil {
-		fmt.Println("Error: ", result.Err())
-		return hotels.HotelDAO{}, result.Err()
-	}
-
-	var hotelDAO hotels.HotelDAO
-	err := result.Decode(&hotelDAO)
+	client, err := mongo.Connect(ctx, cfg)
 	if err != nil {
-		fmt.Println("Error: ", result.Err())
-		return hotels.HotelDAO{}, result.Err()
+		log.Panicf("error connecting to mongo DB: %v", err)
 	}
 
+	return Mongo{
+		client:     client,
+		database:   config.Database,
+		collection: config.Collection,
+	}
+}
+
+func (repository Mongo) GetHotelByID(ctx context.Context, id int64) (hotelsDAO.Hotel, error) {
+	// Get from MongoDB
+	result := repository.client.Database(repository.database).Collection(repository.collection).FindOne(ctx, bson.M{"id": id})
+	if result.Err() != nil {
+		return hotelsDAO.Hotel{}, fmt.Errorf("error finding document: %w", result.Err())
+	}
+
+	// Convert document to DAO
+	var hotelDAO hotelsDAO.Hotel
+	if err := result.Decode(&hotelDAO); err != nil {
+		return hotelsDAO.Hotel{}, fmt.Errorf("error decoding result: %w", err)
+	}
 	return hotelDAO, nil
 }
