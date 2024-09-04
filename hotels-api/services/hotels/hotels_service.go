@@ -12,20 +12,27 @@ type Repository interface {
 }
 
 type Service struct {
-	repository Repository
+	mainRepository  Repository
+	cacheRepository Repository
 }
 
-func NewService(repository Repository) Service {
+func NewService(mainRepository Repository, cacheRepository Repository) Service {
 	return Service{
-		repository: repository,
+		mainRepository:  mainRepository,
+		cacheRepository: cacheRepository,
 	}
 }
 
 func (service Service) GetHotelByID(ctx context.Context, id int64) (hotelsDomain.Hotel, error) {
-	// Get hotel from repository
-	hotelDAO, err := service.repository.GetHotelByID(ctx, id)
+	hotelDAO, err := service.cacheRepository.GetHotelByID(ctx, id)
 	if err != nil {
-		return hotelsDomain.Hotel{}, fmt.Errorf("error getting hotel from repository: %v", err)
+		// Get hotel from main repository
+		hotelDAO, err = service.mainRepository.GetHotelByID(ctx, id)
+		if err != nil {
+			return hotelsDomain.Hotel{}, fmt.Errorf("error getting hotel from repository: %v", err)
+		}
+
+		// TODO: service.cacheRepository.CreateHotel
 	}
 
 	// Convert DAO to DTO

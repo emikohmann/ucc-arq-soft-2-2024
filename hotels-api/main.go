@@ -13,6 +13,11 @@ type Controller interface {
 
 func main() {
 	// Config
+	cacheConfig := hotelsRepository.CacheConfig{
+		MaxSize:      100000,
+		ItemsToPrune: 100,
+	}
+
 	mongoConfig := hotelsRepository.MongoConfig{
 		Host:       "localhost",
 		Port:       "27017",
@@ -23,8 +28,9 @@ func main() {
 	}
 
 	// Dependencies
-	repository := hotelsRepository.NewMongo(mongoConfig)
-	service := hotelsService.NewService(repository)
+	mainRepository := hotelsRepository.NewMongo(mongoConfig)
+	cacheRepository := hotelsRepository.NewCache(cacheConfig)
+	service := hotelsService.NewService(mainRepository, cacheRepository)
 	controller := hotelsController.NewController(service)
 
 	// Router
