@@ -5,6 +5,7 @@ go 1.22.3
 require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/karlseguin/ccache v2.0.3+incompatible
+	github.com/streadway/amqp v1.1.0
 	go.mongodb.org/mongo-driver v1.16.1
 )
 
