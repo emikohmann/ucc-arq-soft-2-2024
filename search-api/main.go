@@ -26,6 +26,7 @@ func main() {
 	router := gin.Default()
 
 	// URL mappings
+	// /hotels/search?q=sheraton&limit=10&offset=0
 	router.GET("/hotels/search", controller.Search)
 
 	// Run application
