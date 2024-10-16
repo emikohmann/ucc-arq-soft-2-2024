@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/karlseguin/ccache"
-	_ "github.com/karlseguin/ccache"
 	hotelsDAO "hotels-api/dao/hotels"
 )
 

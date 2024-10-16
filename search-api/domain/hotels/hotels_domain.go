@@ -9,8 +9,3 @@ type Hotel struct {
 	Rating    float64  `json:"rating"`
 	Amenities []string `json:"amenities"`
 }
-
-type HotelNew struct {
-	Operation string `json:"operation"`
-	HotelID   int64  `json:"hotel_id"`
-}

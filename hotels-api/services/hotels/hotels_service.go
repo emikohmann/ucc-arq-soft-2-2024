@@ -11,15 +11,21 @@ type Repository interface {
 	GetHotelByID(ctx context.Context, id int64) (hotels.Hotel, error)
 }
 
+type Queue interface {
+	Publish(hotelNew hotelsDomain.HotelNew) error
+}
+
 type Service struct {
 	mainRepository  Repository
 	cacheRepository Repository
+	eventsQueue     Queue
 }
 
-func NewService(mainRepository Repository, cacheRepository Repository) Service {
+func NewService(mainRepository Repository, cacheRepository Repository, eventsQueue Queue) Service {
 	return Service{
 		mainRepository:  mainRepository,
 		cacheRepository: cacheRepository,
+		eventsQueue:     eventsQueue,
 	}
 }
 
@@ -35,6 +41,16 @@ func (service Service) GetHotelByID(ctx context.Context, id int64) (hotelsDomain
 		// TODO: service.cacheRepository.CreateHotel
 	}
 
+	// Example of notifying to the events queue
+	go func() {
+		if err := service.eventsQueue.Publish(hotelsDomain.HotelNew{
+			Operation: "GET",
+			HotelID:   hotelDAO.ID,
+		}); err != nil {
+			fmt.Println(fmt.Sprintf("Error publishing hotel new: %w", err))
+		}
+	}()
+
 	// Convert DAO to DTO
 	return hotelsDomain.Hotel{
 		ID:        hotelDAO.ID,
@@ -45,4 +61,5 @@ func (service Service) GetHotelByID(ctx context.Context, id int64) (hotelsDomain
 		Rating:    hotelDAO.Rating,
 		Amenities: hotelDAO.Amenities,
 	}, nil
+
 }
