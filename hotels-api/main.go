@@ -6,6 +6,8 @@ import (
 	controllers "hotels-api/controllers/hotels"
 	repositories "hotels-api/repositories/hotels"
 	services "hotels-api/services/hotels"
+	"log"
+	"time"
 )
 
 func main() {
@@ -13,6 +15,7 @@ func main() {
 	cacheConfig := repositories.CacheConfig{
 		MaxSize:      100000,
 		ItemsToPrune: 100,
+		Duration:     30 * time.Second,
 	}
 
 	// Mongo
@@ -27,8 +30,8 @@ func main() {
 
 	// Rabbit
 	rabbitConfig := queues.RabbitConfig{
-		Username:  "guest",
-		Password:  "guest",
+		Username:  "user",
+		Password:  "password",
 		Host:      "localhost",
 		Port:      "5672",
 		QueueName: "hotels-news",
@@ -44,4 +47,8 @@ func main() {
 	// Router
 	router := gin.Default()
 	router.GET("/hotels/:id", controller.GetHotelByID)
+	router.POST("/hotels", controller.Create)
+	if err := router.Run(":8080"); err != nil {
+		log.Fatalf("error running application: %w", err)
+	}
 }

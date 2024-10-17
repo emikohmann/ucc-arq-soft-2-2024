@@ -3,12 +3,13 @@ package hotels
 import (
 	"context"
 	"fmt"
-	"hotels-api/dao/hotels"
+	hotelsDAO "hotels-api/dao/hotels"
 	hotelsDomain "hotels-api/domain/hotels"
 )
 
 type Repository interface {
-	GetHotelByID(ctx context.Context, id string) (hotels.Hotel, error)
+	GetHotelByID(ctx context.Context, id string) (hotelsDAO.Hotel, error)
+	Create(ctx context.Context, hotel hotelsDAO.Hotel) (string, error)
 }
 
 type Queue interface {
@@ -32,13 +33,22 @@ func NewService(mainRepository Repository, cacheRepository Repository, eventsQue
 func (service Service) GetHotelByID(ctx context.Context, id string) (hotelsDomain.Hotel, error) {
 	hotelDAO, err := service.cacheRepository.GetHotelByID(ctx, id)
 	if err != nil {
+		fmt.Println(fmt.Sprintf("Hotel %s not found in secondary repository", id))
 		// Get hotel from main repository
 		hotelDAO, err = service.mainRepository.GetHotelByID(ctx, id)
 		if err != nil {
+			fmt.Println(fmt.Sprintf("Hotel %s not found in main repository", id))
 			return hotelsDomain.Hotel{}, fmt.Errorf("error getting hotel from repository: %v", err)
 		}
-
-		// TODO: service.cacheRepository.CreateHotel
+		// Set ID from main repository to use in the rest of the repositories
+		fmt.Println(fmt.Sprintf("Hotel %s retrieved from main repository", id))
+		if _, err := service.cacheRepository.Create(ctx, hotelDAO); err != nil {
+			fmt.Println(fmt.Sprintf("Warning: error creating hotel in cache: %w", err))
+		} else {
+			fmt.Println(fmt.Sprintf("Hotel %s saved in secondary repository", id))
+		}
+	} else {
+		fmt.Println(fmt.Sprintf("Hotel %s retrieved from secondary repository", id))
 	}
 
 	// Convert DAO to DTO
@@ -53,16 +63,32 @@ func (service Service) GetHotelByID(ctx context.Context, id string) (hotelsDomai
 	}, nil
 }
 
-/**
-
-// Example of notifying to the events queue
-go func() {
+func (service Service) Create(ctx context.Context, hotel hotelsDomain.Hotel) (string, error) {
+	record := hotelsDAO.Hotel{
+		Name:      hotel.Name,
+		Address:   hotel.Address,
+		City:      hotel.City,
+		State:     hotel.State,
+		Rating:    hotel.Rating,
+		Amenities: hotel.Amenities,
+	}
+	id, err := service.mainRepository.Create(ctx, record)
+	if err != nil {
+		return "", fmt.Errorf("error creating hotel in main repository: %w", err)
+	}
+	// Set ID from main repository to use in the rest of the repositories
+	record.ID = id
+	if _, err := service.cacheRepository.Create(ctx, record); err != nil {
+		fmt.Println(fmt.Sprintf("error creating hotel in cache: %w", err))
+	} else {
+		fmt.Println("saved in secondary repository")
+	}
 	if err := service.eventsQueue.Publish(hotelsDomain.HotelNew{
 		Operation: "GET",
-		HotelID:   hotelDAO.ID,
+		HotelID:   id,
 	}); err != nil {
 		fmt.Println(fmt.Sprintf("Error publishing hotel new: %w", err))
 	}
-}()
-
-*/
+	fmt.Println(fmt.Sprintf("Published to rabbitMQ hotelID %s Operation GET", id))
+	return id, err
+}

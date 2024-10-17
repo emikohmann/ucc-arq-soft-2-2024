@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"log"
-	"time"
+	"users-api/config"
 	controllers "users-api/controllers/users"
 	"users-api/internal/tokenizers"
 	repositories "users-api/repositories/users"
@@ -11,25 +11,36 @@ import (
 )
 
 func main() {
-	// MySQL
-	mySQLConfig := repositories.MySQLConfig{
-		Host:     "127.0.0.1",
-		Port:     "3306",
-		Database: "users-api",
-		Username: "root",
-		Password: "root",
-	}
-	mySQLRepo := repositories.NewMySQL(mySQLConfig)
+	// Repositories
+	mySQLRepo := repositories.NewMySQL(
+		repositories.MySQLConfig{
+			Host:     config.MySQLHost,
+			Port:     config.MySQLPort,
+			Database: config.MySQLDatabase,
+			Username: config.MySQLUsername,
+			Password: config.MySQLPassword,
+		},
+	)
 
-	// JWT
-	jwtConfig := tokenizers.JWTConfig{
-		Key:      "ThisIsAnExampleJWTKey!",
-		Duration: 24 * time.Hour,
-	}
-	jwtTokenizer := tokenizers.NewTokenizer(jwtConfig)
+	cacheRepo := repositories.NewCache(repositories.CacheConfig{
+		TTL: config.CacheDuration,
+	})
+
+	memcachedRepo := repositories.NewMemcached(repositories.MemcachedConfig{
+		Host: config.MemcachedHost,
+		Port: config.MemcachedPort,
+	})
+
+	// Tokenizer
+	jwtTokenizer := tokenizers.NewTokenizer(
+		tokenizers.JWTConfig{
+			Key:      config.JWTKey,
+			Duration: config.JWTDuration,
+		},
+	)
 
 	// Services
-	service := services.NewService(mySQLRepo, jwtTokenizer)
+	service := services.NewService(mySQLRepo, cacheRepo, memcachedRepo, jwtTokenizer)
 
 	// Handlers
 	controller := controllers.NewController(service)
@@ -41,6 +52,7 @@ func main() {
 	router.GET("/users", controller.GetAll)
 	router.GET("/users/:id", controller.GetByID)
 	router.POST("/users", controller.Create)
+	router.PUT("/users/:id", controller.Update)
 	router.POST("/login", controller.Login)
 
 	// Run application

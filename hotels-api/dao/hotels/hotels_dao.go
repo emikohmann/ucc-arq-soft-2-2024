@@ -1,7 +1,7 @@
 package hotels
 
 type Hotel struct {
-	ID        string   `bson:"id"`
+	ID        string   `bson:"_id,omitempty"`
 	Name      string   `bson:"name"`
 	Address   string   `bson:"address"`
 	City      string   `bson:"city"`

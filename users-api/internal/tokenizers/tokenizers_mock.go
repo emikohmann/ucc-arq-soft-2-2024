@@ -1,12 +1,16 @@
 package tokenizers
 
-type Mock struct{}
+import "github.com/stretchr/testify/mock"
 
-func NewMock() Mock {
-	return Mock{}
+type Mock struct {
+	mock.Mock
 }
 
-func (tokenizer Mock) GenerateToken(username string, userID int64) (string, error) {
-	//TODO implement me
-	panic("implement me")
+func NewMock() *Mock {
+	return &Mock{}
+}
+
+func (m *Mock) GenerateToken(username string, userID int64) (string, error) {
+	args := m.Called(username, userID)
+	return args.String(0), args.Error(1)
 }

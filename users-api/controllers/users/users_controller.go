@@ -12,6 +12,8 @@ type Service interface {
 	GetAll() ([]domain.User, error)
 	GetByID(id int64) (domain.User, error)
 	Create(user domain.User) (int64, error)
+	Update(user domain.User) error
+	Delete(id int64) error
 	Login(username string, password string) (domain.LoginResponse, error)
 }
 
@@ -84,6 +86,66 @@ func (controller Controller) Create(c *gin.Context) {
 
 	// Send ID
 	c.JSON(http.StatusCreated, gin.H{
+		"id": id,
+	})
+}
+
+func (controller Controller) Update(c *gin.Context) {
+	// Parse user ID from HTTP request
+	userID := c.Param("id")
+	id, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("invalid request: %s", err.Error()),
+		})
+		return
+	}
+
+	// Parse updated user data from HTTP request
+	var user domain.User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("invalid request: %s", err.Error()),
+		})
+		return
+	}
+
+	// Set the ID of the user to be updated
+	user.ID = id
+
+	// Invoke service
+	if err := controller.service.Update(user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("error updating user: %s", err.Error()),
+		})
+		return
+	}
+
+	// Send response
+	c.JSON(http.StatusOK, user)
+}
+
+func (controller Controller) Delete(c *gin.Context) {
+	// Parse user ID from HTTP request
+	userID := c.Param("id")
+	id, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("invalid request: %s", err.Error()),
+		})
+		return
+	}
+
+	// Invoke service
+	if err := controller.service.Delete(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("error deleting user: %s", err.Error()),
+		})
+		return
+	}
+
+	// Send response
+	c.JSON(http.StatusOK, gin.H{
 		"id": id,
 	})
 }
