@@ -1,7 +1,7 @@
 package hotels
 
 type Hotel struct {
-	ID        int64    `json:"id"`
+	ID        string   `json:"id"`
 	Name      string   `json:"name"`
 	Address   string   `json:"address"`
 	City      string   `json:"city"`
@@ -12,5 +12,5 @@ type Hotel struct {
 
 type HotelNew struct {
 	Operation string `json:"operation"`
-	HotelID   int64  `json:"hotel_id"`
+	HotelID   string `json:"hotel_id"`
 }

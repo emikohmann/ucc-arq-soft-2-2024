@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	keyFormat = "hotel:%d"
+	keyFormat = "hotel:%s"
 )
 
 type CacheConfig struct {
@@ -29,16 +29,12 @@ func NewCache(config CacheConfig) Cache {
 	}
 }
 
-func (repo Cache) GetHotelByID(
-	ctx context.Context, id int64) (
-	hotelsDAO.Hotel, error) {
-
+func (repo Cache) GetHotelByID(ctx context.Context, id string) (hotelsDAO.Hotel, error) {
 	key := fmt.Sprintf(keyFormat, id)
 	item := repo.client.Get(key)
 	hotelDAO, ok := item.Value().(hotelsDAO.Hotel)
 	if !ok {
-		return hotelsDAO.Hotel{},
-			fmt.Errorf("error converting item with key %s", key)
+		return hotelsDAO.Hotel{}, fmt.Errorf("error converting item with key %s", key)
 	}
 	return hotelDAO, nil
 }
