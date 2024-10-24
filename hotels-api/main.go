@@ -50,7 +50,7 @@ func main() {
 	router.POST("/hotels", controller.Create)
 	router.PUT("/hotels/:id", controller.Update)
 	router.DELETE("/hotels/:id", controller.Delete)
-	if err := router.Run(":8080"); err != nil {
+	if err := router.Run(":8081"); err != nil {
 		log.Fatalf("error running application: %w", err)
 	}
 }

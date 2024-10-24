@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+    <luceneMatchVersion>8.11.0</luceneMatchVersion>
+
+    <requestHandler name="/select" class="solr.SearchHandler">
+        <lst name="defaults">
+            <str name="rows">10</str>
+            <str name="wt">json</str>
+        </lst>
+    </requestHandler>
+
+    <updateRequestHandler name="/update" class="solr.UpdateRequestHandler"/>
+    <updateRequestProcessorChain name="default">
+        <processor class="solr.RunUpdateProcessorFactory" />
+        <processor class="solr.LowerCaseFilterFactory" />
+        <processor class="solr.LowerCaseFilterFactory" />
+        <processor class="solr.CommitProcessor" />
+    </updateRequestProcessorChain>
+
+    <requestHandler name="/update/json/docs" class="solr.UpdateRequestHandler">
+        <lst name="defaults">
+            <str name="commitWithin">15000</str>
+        </lst>
+    </requestHandler>
+
+    <directoryFactory class="solr.NRTCachingDirectoryFactory" />
+
+    <queryParser name="edismax" class="solr.DegenerateQueryParser" />
+</config>

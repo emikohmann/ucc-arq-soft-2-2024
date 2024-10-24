@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<schema name="hotels" version="1.6">
+    <fields>
+        <field name="id" type="string" indexed="true" stored="true" required="true"/>
+        <field name="name" type="text_general" indexed="true" stored="true"/>
+        <field name="address" type="text_general" indexed="true" stored="true"/>
+        <field name="city" type="text_general" indexed="true" stored="true"/>
+        <field name="state" type="text_general" indexed="true" stored="true"/>
+        <field name="rating" type="float" indexed="true" stored="true"/>
+        <field name="amenities" type="text_general" indexed="true" stored="true" multiValued="true"/>
+    </fields>
+
+    <uniqueKey>id</uniqueKey>
+
+    <defaultSearchField>name</defaultSearchField>
+    <similarity class="solr.ClassicSimilarity"/>
+</schema>

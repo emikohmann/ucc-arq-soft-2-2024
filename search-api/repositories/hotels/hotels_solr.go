@@ -10,8 +10,9 @@ import (
 )
 
 type SolrConfig struct {
-	BaseURL    string
-	Collection string
+	Host       string // Solr host
+	Port       string // Solr port
+	Collection string // Solr collection name
 }
 
 type Solr struct {
@@ -20,13 +21,15 @@ type Solr struct {
 }
 
 // NewSolr initializes a new Solr client
-func NewSolr(config SolrConfig) (*Solr, error) {
-	client := solr.NewJSONClient(config.BaseURL)
+func NewSolr(config SolrConfig) Solr {
+	// Construct the BaseURL using the provided host and port
+	baseURL := fmt.Sprintf("http://%s:%s", config.Host, config.Port)
+	client := solr.NewJSONClient(baseURL)
 
-	return &Solr{
+	return Solr{
 		Client:     client,
 		Collection: config.Collection,
-	}, nil
+	}
 }
 
 // Index adds a new hotel document to the Solr collection
@@ -42,8 +45,13 @@ func (searchEngine Solr) Index(ctx context.Context, hotel hotels.Hotel) (string,
 		"amenities": hotel.Amenities,
 	}
 
+	// Prepare the index request
+	indexRequest := map[string]interface{}{
+		"add": []interface{}{doc}, // Use "add" with a list of documents
+	}
+
 	// Index the document in Solr
-	body, err := json.Marshal(doc)
+	body, err := json.Marshal(indexRequest)
 	if err != nil {
 		return "", fmt.Errorf("error marshaling hotel document: %w", err)
 	}
@@ -78,15 +86,24 @@ func (searchEngine Solr) Update(ctx context.Context, hotel hotels.Hotel) error {
 		"amenities": hotel.Amenities,
 	}
 
+	// Prepare the update request
+	updateRequest := map[string]interface{}{
+		"add": []interface{}{doc}, // Use "add" with a list of documents
+	}
+
 	// Update the document in Solr
-	body, err := json.Marshal(doc)
+	body, err := json.Marshal(updateRequest)
 	if err != nil {
 		return fmt.Errorf("error marshaling hotel document: %w", err)
 	}
 
-	// Update the document in Solr
-	if _, err := searchEngine.Client.Update(ctx, searchEngine.Collection, solr.JSON, bytes.NewReader(body)); err != nil {
+	// Execute the update request using the Update method
+	resp, err := searchEngine.Client.Update(ctx, searchEngine.Collection, solr.JSON, bytes.NewReader(body))
+	if err != nil {
 		return fmt.Errorf("error updating hotel: %w", err)
+	}
+	if resp.Error != nil {
+		return fmt.Errorf("failed to update hotel: %v", resp.Error)
 	}
 
 	// Commit the changes
@@ -128,9 +145,9 @@ func (searchEngine Solr) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (searchEngine Solr) Search(ctx context.Context, query string) ([]hotels.Hotel, error) {
-	// Prepare the Solr query
-	solrQuery := fmt.Sprintf("q=%s", query) // Format the query string for Solr
+func (searchEngine Solr) Search(ctx context.Context, query string, limit int, offset int) ([]hotels.Hotel, error) {
+	// Prepare the Solr query with limit and offset
+	solrQuery := fmt.Sprintf("q=(name:%s)&rows=%d&start=%d", query, limit, offset)
 
 	// Execute the search request
 	resp, err := searchEngine.Client.Query(ctx, searchEngine.Collection, solr.NewQuery(solrQuery))
@@ -144,24 +161,56 @@ func (searchEngine Solr) Search(ctx context.Context, query string) ([]hotels.Hot
 	// Parse the response and extract hotel documents
 	var hotelsList []hotels.Hotel
 	for _, doc := range resp.Response.Documents {
-		// Parse amenities
-		amenities := make([]string, 0)
-		for _, amenity := range doc["amenities"].([]interface{}) {
-			amenities = append(amenities, amenity.(string))
+		// Initialize amenities slice
+		var amenities []string
+
+		// Check if amenities exist and handle different types
+		if amenitiesData, ok := doc["amenities"].([]interface{}); ok {
+			for _, amenity := range amenitiesData {
+				if amenityStr, ok := amenity.(string); ok {
+					amenities = append(amenities, amenityStr)
+				}
+			}
 		}
 
-		// Create a hotel from the document fields
+		// Safely extract hotel fields with type assertions
 		hotel := hotels.Hotel{
-			ID:        doc["id"].(string),
-			Name:      doc["name"].(string),
-			Address:   doc["address"].(string),
-			City:      doc["city"].(string),
-			State:     doc["state"].(string),
-			Rating:    doc["rating"].(float64),
+			ID:        getStringField(doc, "id"),
+			Name:      getStringField(doc, "name"),
+			Address:   getStringField(doc, "address"),
+			City:      getStringField(doc, "city"),
+			State:     getStringField(doc, "state"),
+			Rating:    getFloatField(doc, "rating"),
 			Amenities: amenities,
 		}
 		hotelsList = append(hotelsList, hotel)
 	}
 
 	return hotelsList, nil
+}
+
+// Helper function to safely get string fields from the document
+func getStringField(doc map[string]interface{}, field string) string {
+	if val, ok := doc[field].(string); ok {
+		return val
+	}
+	if val, ok := doc[field].([]interface{}); ok && len(val) > 0 {
+		if strVal, ok := val[0].(string); ok {
+			return strVal
+		}
+	}
+	return ""
+}
+
+// Helper function to safely get float64 fields from the document
+func getFloatField(doc map[string]interface{}, field string) float64 {
+	if val, ok := doc[field].(float64); ok {
+		return val
+	}
+	if val, ok := doc[field].([]interface{}); ok && len(val) > 0 {
+		if floatVal, ok := val[0].(float64); ok {
+			return floatVal
+		}
+	}
+	return 0.0
 }

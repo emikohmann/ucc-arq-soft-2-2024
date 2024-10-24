@@ -12,8 +12,9 @@ import (
 func main() {
 	// Solr
 	solrConfig := search.SolrConfig{
-		BaseURL:    "localhost",
-		Collection: "hotels",
+		Host:       "localhost", // Solr host
+		Port:       "8983",      // Solr port
+		Collection: "hotels",    // Collection name
 	}
 	solrRepo := search.NewSolr(solrConfig)
 
@@ -38,8 +39,8 @@ func main() {
 
 	// Create router
 	router := gin.Default()
-	router.GET("/hotels/search", controller.Search)
-	if err := router.Run(":8080"); err != nil {
+	router.GET("/search", controller.Search)
+	if err := router.Run(":8082"); err != nil {
 		log.Fatalf("Error running application: %v", err)
 	}
 }

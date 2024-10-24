@@ -77,7 +77,7 @@ func (service Service) Create(ctx context.Context, hotel hotelsDomain.Hotel) (st
 		return "", fmt.Errorf("error creating hotel in cache: %w", err)
 	}
 	if err := service.eventsQueue.Publish(hotelsDomain.HotelNew{
-		Operation: "GET",
+		Operation: "CREATE",
 		HotelID:   id,
 	}); err != nil {
 		return "", fmt.Errorf("error publishing hotel new: %w", err)

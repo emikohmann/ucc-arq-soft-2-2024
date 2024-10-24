@@ -14,5 +14,4 @@ docker pull rabbitmq:4-management
 docker run -d -p 5671:5671 -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=root -e RABBITMQ_DEFAULT_PASS=root --name rabbit-container rabbitmq:4-management
 
 docker pull solr:latest
-docker run -d -p 8983:8983 --name solr-container solr:latest
-```
+docker run -d -p 8983:8983 --name solr-container -v $(pwd)/search-api/solr-config:/opt/solr/server/solr/hotels solr:latest solr-create -c hotels
