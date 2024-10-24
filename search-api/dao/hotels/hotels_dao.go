@@ -1,11 +1,11 @@
 package hotels
 
 type Hotel struct {
-	ID        int64    `bson:"id"`
-	Name      string   `bson:"name"`
-	Address   string   `bson:"address"`
-	City      string   `bson:"city"`
-	State     string   `bson:"state"`
-	Rating    float64  `bson:"rating"`
-	Amenities []string `bson:"amenities"`
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Address   string   `json:"address"`
+	City      string   `json:"city"`
+	State     string   `json:"state"`
+	Rating    float64  `json:"rating"`
+	Amenities []string `json:"amenities"`
 }

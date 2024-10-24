@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"log"
+	"search-api/clients/queues"
 	controllers "search-api/controllers/search"
 	search "search-api/repositories/hotels"
 	services "search-api/services/search"
@@ -11,26 +12,34 @@ import (
 func main() {
 	// Solr
 	solrConfig := search.SolrConfig{
-		BaseURL:    "",
+		BaseURL:    "localhost",
 		Collection: "hotels",
 	}
 	solrRepo := search.NewSolr(solrConfig)
 
-	// Services
-	service := services.NewService(solrRepo)
+	// Rabbit
+	rabbitConfig := queues.RabbitConfig{
+		Username:  "root",
+		Password:  "root",
+		Host:      "localhost",
+		Port:      "5672",
+		QueueName: "hotels-news",
+	}
 
-	// Handlers
+	// Dependencies
+	eventsQueue := queues.NewRabbit(rabbitConfig)
+	service := services.NewService(solrRepo)
 	controller := controllers.NewController(service)
+
+	// Launch rabbit consumer
+	if err := eventsQueue.StartConsumer(service.HandleHotelNew); err != nil {
+		log.Fatalf("Error running consumer: %v", err)
+	}
 
 	// Create router
 	router := gin.Default()
-
-	// URL mappings
-	// /hotels/search?q=sheraton&limit=10&offset=0
 	router.GET("/hotels/search", controller.Search)
-
-	// Run application
 	if err := router.Run(":8080"); err != nil {
-		log.Panicf("Error running application: %v", err)
+		log.Fatalf("Error running application: %v", err)
 	}
 }

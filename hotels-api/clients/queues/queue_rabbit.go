@@ -3,7 +3,6 @@ package queues
 import (
 	"encoding/json"
 	"fmt"
-	_ "github.com/rabbitmq/amqp091-go"
 	"github.com/streadway/amqp"
 	"hotels-api/domain/hotels"
 	"log"
@@ -57,4 +56,14 @@ func (queue Rabbit) Publish(hotelNew hotels.HotelNew) error {
 		return fmt.Errorf("error publishing to Rabbit: %w", err)
 	}
 	return nil
+}
+
+// Close cleans up the RabbitMQ resources
+func (queue Rabbit) Close() {
+	if err := queue.channel.Close(); err != nil {
+		log.Printf("error closing Rabbit channel: %v", err)
+	}
+	if err := queue.connection.Close(); err != nil {
+		log.Printf("error closing Rabbit connection: %v", err)
+	}
 }

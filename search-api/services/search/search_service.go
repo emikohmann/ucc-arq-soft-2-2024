@@ -8,7 +8,10 @@ import (
 )
 
 type Repository interface {
-	Search(ctx context.Context, query string, offset int, limit int) ([]hotelsDAO.Hotel, error)
+	Index(ctx context.Context, hotel hotelsDAO.Hotel) (string, error)
+	Update(ctx context.Context, hotel hotelsDAO.Hotel) error
+	Delete(ctx context.Context, id string) error
+	Search(ctx context.Context, query string) ([]hotelsDAO.Hotel, error)
 }
 
 type Service struct {
@@ -22,26 +25,9 @@ func NewService(repository Repository) Service {
 }
 
 func (service Service) Search(ctx context.Context, query string, offset int, limit int) ([]hotelsDomain.Hotel, error) {
-	// Try to hotelsDAO in repository
-	hotels, err := service.repository.Search(ctx, query, offset, limit)
-	if err != nil {
-		return nil, fmt.Errorf("error searching hotelsDAO: %s", err.Error())
-	}
+	return nil, nil
+}
 
-	// Convert
-	result := make([]hotelsDomain.Hotel, 0)
-	for _, hotel := range hotels {
-		result = append(result, hotelsDomain.Hotel{
-			ID:        hotel.ID,
-			Name:      hotel.Name,
-			Address:   hotel.Address,
-			City:      hotel.City,
-			State:     hotel.State,
-			Rating:    hotel.Rating,
-			Amenities: hotel.Amenities,
-		})
-	}
-
-	// Send the result
-	return result, nil
+func (service Service) HandleHotelNew(hotelNew hotelsDomain.HotelNew) {
+	fmt.Println("Received new", hotelNew)
 }
