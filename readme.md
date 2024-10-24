@@ -5,6 +5,9 @@ docker exec -t mysql-container bash
 mysql -uroot -p
 create database `users-api`;
 
+docker pull memcached:latest
+docker run -d -p 11211:11211 --name memcached-container memcached:latest
+
 docker pull mongo:4
 docker run -d -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=root -e MONGO_INITDB_ROOT_PASSWORD=root --name mongo-container mongo:4
 docker exec -t mongo-container bash
@@ -15,3 +18,4 @@ docker run -d -p 5671:5671 -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=
 
 docker pull solr:latest
 docker run -d -p 8983:8983 --name solr-container -v $(pwd)/search-api/solr-config:/opt/solr/server/solr/hotels solr:latest solr-create -c hotels
+```
