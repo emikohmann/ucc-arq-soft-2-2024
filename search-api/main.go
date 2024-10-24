@@ -5,31 +5,37 @@ import (
 	"log"
 	"search-api/clients/queues"
 	controllers "search-api/controllers/search"
-	search "search-api/repositories/hotels"
+	repositories "search-api/repositories/hotels"
 	services "search-api/services/search"
 )
 
 func main() {
 	// Solr
-	solrConfig := search.SolrConfig{
-		Host:       "localhost", // Solr host
-		Port:       "8983",      // Solr port
-		Collection: "hotels",    // Collection name
-	}
-	solrRepo := search.NewSolr(solrConfig)
+	solrRepo := repositories.NewSolr(repositories.SolrConfig{
+		Host:       "solr",   // Solr host
+		Port:       "8983",   // Solr port
+		Collection: "hotels", // Collection name
+	})
 
 	// Rabbit
-	rabbitConfig := queues.RabbitConfig{
+	eventsQueue := queues.NewRabbit(queues.RabbitConfig{
+		Host:      "rabbitmq",
+		Port:      "5672",
 		Username:  "root",
 		Password:  "root",
-		Host:      "localhost",
-		Port:      "5672",
 		QueueName: "hotels-news",
-	}
+	})
 
-	// Dependencies
-	eventsQueue := queues.NewRabbit(rabbitConfig)
-	service := services.NewService(solrRepo)
+	// Hotels API
+	hotelsAPI := repositories.NewHTTP(repositories.HTTPConfig{
+		Host: "hotels-api",
+		Port: "8081",
+	})
+
+	// Services
+	service := services.NewService(solrRepo, hotelsAPI)
+
+	// Controllers
 	controller := controllers.NewController(service)
 
 	// Launch rabbit consumer

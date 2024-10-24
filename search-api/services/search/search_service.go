@@ -2,10 +2,7 @@ package search
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	hotelsDAO "search-api/dao/hotels"
 	hotelsDomain "search-api/domain/hotels"
 )
@@ -17,13 +14,19 @@ type Repository interface {
 	Search(ctx context.Context, query string, limit int, offset int) ([]hotelsDAO.Hotel, error) // Updated signature
 }
 
-type Service struct {
-	repository Repository
+type ExternalRepository interface {
+	GetHotelByID(ctx context.Context, id string) (hotelsDomain.Hotel, error)
 }
 
-func NewService(repository Repository) Service {
+type Service struct {
+	repository Repository
+	hotelsAPI  ExternalRepository
+}
+
+func NewService(repository Repository, hotelsAPI ExternalRepository) Service {
 	return Service{
 		repository: repository,
+		hotelsAPI:  hotelsAPI,
 	}
 }
 
@@ -52,33 +55,12 @@ func (service Service) Search(ctx context.Context, query string, offset int, lim
 }
 
 func (service Service) HandleHotelNew(hotelNew hotelsDomain.HotelNew) {
-	var hotel hotelsDomain.Hotel
-
 	switch hotelNew.Operation {
 	case "CREATE", "UPDATE":
 		// Fetch hotel details from the local service
-		resp, err := http.Get(fmt.Sprintf("http://localhost:8081/hotels/%s", hotelNew.HotelID))
+		hotel, err := service.hotelsAPI.GetHotelByID(context.Background(), hotelNew.HotelID)
 		if err != nil {
-			fmt.Printf("Error fetching hotel (%s): %v\n", hotelNew.HotelID, err)
-			return
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			fmt.Printf("Failed to fetch hotel (%s): received status code %d\n", hotelNew.HotelID, resp.StatusCode)
-			return
-		}
-
-		// Read the response body
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Printf("Error reading response body for hotel (%s): %v\n", hotelNew.HotelID, err)
-			return
-		}
-
-		// Unmarshal the hotel details into the hotel struct
-		if err := json.Unmarshal(body, &hotel); err != nil {
-			fmt.Printf("Error unmarshaling hotel data (%s): %v\n", hotelNew.HotelID, err)
+			fmt.Printf("Error getting hotel (%s) from API: %v\n", hotelNew.HotelID, err)
 			return
 		}
 

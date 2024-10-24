@@ -14,7 +14,7 @@ func main() {
 	// MySQL
 	mySQLRepo := repositories.NewMySQL(
 		repositories.MySQLConfig{
-			Host:     "localhost",
+			Host:     "mysql",
 			Port:     "3306",
 			Database: "users-api",
 			Username: "root",
@@ -29,7 +29,7 @@ func main() {
 
 	// Memcached
 	memcachedRepo := repositories.NewMemcached(repositories.MemcachedConfig{
-		Host: "localhost",
+		Host: "memcached",
 		Port: "11211",
 	})
 

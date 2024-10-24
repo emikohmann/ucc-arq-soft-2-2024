@@ -56,6 +56,51 @@ services:
     networks:
       - app-network
 
+  users-api:
+    image: users-api:latest
+    container_name: users-api-container
+    build:
+      context: ./users-api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    command: /bin/sh -c "sleep 10 && go run main.go"
+    depends_on:
+      - memcached
+      - mysql
+    networks:
+      - app-network
+
+  hotels-api:
+    image: hotels-api:latest
+    container_name: hotels-api-container
+    build:
+      context: ./hotels-api
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    command: /bin/sh -c "sleep 10 && go run main.go"
+    depends_on:
+      - mongo
+      - rabbitmq
+    networks:
+      - app-network
+
+  search-api:
+    image: search-api:latest
+    container_name: search-api-container
+    build:
+      context: ./search-api
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    command: /bin/sh -c "sleep 10 && go run main.go"
+    depends_on:
+      - rabbitmq
+      - solr
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge

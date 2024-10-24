@@ -12,36 +12,35 @@ import (
 
 func main() {
 	// Local cache
-	cacheConfig := repositories.CacheConfig{
+	cacheRepository := repositories.NewCache(repositories.CacheConfig{
 		MaxSize:      100000,
 		ItemsToPrune: 100,
 		Duration:     30 * time.Second,
-	}
+	})
 
 	// Mongo
-	mongoConfig := repositories.MongoConfig{
-		Host:       "localhost",
+	mainRepository := repositories.NewMongo(repositories.MongoConfig{
+		Host:       "mongo",
 		Port:       "27017",
 		Username:   "root",
 		Password:   "root",
 		Database:   "hotels-api",
 		Collection: "hotels",
-	}
+	})
 
 	// Rabbit
-	rabbitConfig := queues.RabbitConfig{
+	eventsQueue := queues.NewRabbit(queues.RabbitConfig{
+		Host:      "rabbitmq",
+		Port:      "5672",
 		Username:  "root",
 		Password:  "root",
-		Host:      "localhost",
-		Port:      "5672",
 		QueueName: "hotels-news",
-	}
+	})
 
-	// Dependencies
-	mainRepository := repositories.NewMongo(mongoConfig)
-	cacheRepository := repositories.NewCache(cacheConfig)
-	eventsQueue := queues.NewRabbit(rabbitConfig)
+	// Services
 	service := services.NewService(mainRepository, cacheRepository, eventsQueue)
+
+	// Controllers
 	controller := controllers.NewController(service)
 
 	// Router
