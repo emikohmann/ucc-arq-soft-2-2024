@@ -8,9 +8,12 @@ const (
 	MySQLDatabase = "users-api"
 	MySQLUsername = "root"
 	MySQLPassword = "root"
+
 	CacheDuration = 30 * time.Second
+
 	MemcachedHost = "localhost"
 	MemcachedPort = "11211"
-	JWTKey        = "ThisIsAnExampleJWTKey!"
-	JWTDuration   = 24 * time.Hour
+
+	JWTKey      = "ThisIsAnExampleJWTKey!"
+	JWTDuration = 24 * time.Hour
 )

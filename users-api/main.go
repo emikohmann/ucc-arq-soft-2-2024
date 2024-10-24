@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"log"
-	"users-api/config"
+	"time"
 	controllers "users-api/controllers/users"
 	"users-api/internal/tokenizers"
 	repositories "users-api/repositories/users"
@@ -11,31 +11,33 @@ import (
 )
 
 func main() {
-	// Repositories
+	// MySQL
 	mySQLRepo := repositories.NewMySQL(
 		repositories.MySQLConfig{
-			Host:     config.MySQLHost,
-			Port:     config.MySQLPort,
-			Database: config.MySQLDatabase,
-			Username: config.MySQLUsername,
-			Password: config.MySQLPassword,
+			Host:     "localhost",
+			Port:     "3306",
+			Database: "users-api",
+			Username: "root",
+			Password: "root",
 		},
 	)
 
+	// Cache
 	cacheRepo := repositories.NewCache(repositories.CacheConfig{
-		TTL: config.CacheDuration,
+		TTL: 1 * time.Minute,
 	})
 
+	// Memcached
 	memcachedRepo := repositories.NewMemcached(repositories.MemcachedConfig{
-		Host: config.MemcachedHost,
-		Port: config.MemcachedPort,
+		Host: "localhost",
+		Port: "11211",
 	})
 
 	// Tokenizer
 	jwtTokenizer := tokenizers.NewTokenizer(
 		tokenizers.JWTConfig{
-			Key:      config.JWTKey,
-			Duration: config.JWTDuration,
+			Key:      "ThisIsAnExampleJWTKey!",
+			Duration: 1 * time.Hour,
 		},
 	)
 

@@ -1,13 +1,13 @@
 package users
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
 	"users-api/dao/users"
 
-	_ "github.com/go-sql-driver/mysql" // Import MySQL driver
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 type MySQLConfig struct {
@@ -19,22 +19,31 @@ type MySQLConfig struct {
 }
 
 type MySQL struct {
-	db *sql.DB
+	db *gorm.DB
 }
+
+var (
+	migrate = []interface{}{
+		users.User{},
+	}
+)
 
 func NewMySQL(config MySQLConfig) MySQL {
 	// Build DSN (Data Source Name)
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", config.Username, config.Password, config.Host, config.Port, config.Database)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		config.Username, config.Password, config.Host, config.Port, config.Database)
 
-	// Open connection to MySQL
-	db, err := sql.Open("mysql", dsn)
+	// Open connection to MySQL using GORM
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect to MySQL: %s", err.Error())
 	}
 
-	// Ping the database to verify connection
-	if err := db.Ping(); err != nil {
-		log.Fatalf("failed to ping MySQL: %s", err.Error())
+	// Automigrate structs to Gorm
+	for _, target := range migrate {
+		if err := db.AutoMigrate(target); err != nil {
+			log.Fatalf("error automigrating structs: %s", err.Error())
+		}
 	}
 
 	return MySQL{
@@ -43,29 +52,17 @@ func NewMySQL(config MySQLConfig) MySQL {
 }
 
 func (repository MySQL) GetAll() ([]users.User, error) {
-	rows, err := repository.db.Query("SELECT id, username, password FROM users")
-	if err != nil {
-		return nil, fmt.Errorf("error fetching all users: %w", err)
-	}
-	defer rows.Close()
-
 	var usersList []users.User
-	for rows.Next() {
-		var user users.User
-		if err := rows.Scan(&user.ID, &user.Username, &user.Password); err != nil {
-			return nil, fmt.Errorf("error scanning user row: %w", err)
-		}
-		usersList = append(usersList, user)
+	if err := repository.db.Find(&usersList).Error; err != nil {
+		return nil, fmt.Errorf("error fetching all users: %w", err)
 	}
 	return usersList, nil
 }
 
 func (repository MySQL) GetByID(id int64) (users.User, error) {
 	var user users.User
-	if err := repository.db.
-		QueryRow("SELECT id, username, password FROM users WHERE id = ?", id).
-		Scan(&user.ID, &user.Username, &user.Password); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	if err := repository.db.First(&user, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return user, fmt.Errorf("user not found")
 		}
 		return user, fmt.Errorf("error fetching user by id: %w", err)
@@ -75,10 +72,8 @@ func (repository MySQL) GetByID(id int64) (users.User, error) {
 
 func (repository MySQL) GetByUsername(username string) (users.User, error) {
 	var user users.User
-	if err := repository.db.
-		QueryRow("SELECT id, username, password FROM users WHERE username = ?", username).
-		Scan(&user.ID, &user.Username, &user.Password); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	if err := repository.db.Where("username = ?", username).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return user, fmt.Errorf("user not found")
 		}
 		return user, fmt.Errorf("error fetching user by username: %w", err)
@@ -87,27 +82,21 @@ func (repository MySQL) GetByUsername(username string) (users.User, error) {
 }
 
 func (repository MySQL) Create(user users.User) (int64, error) {
-	result, err := repository.db.Exec("INSERT INTO users (username, password) VALUES (?, ?)", user.Username, user.Password)
-	if err != nil {
+	if err := repository.db.Create(&user).Error; err != nil {
 		return 0, fmt.Errorf("error creating user: %w", err)
 	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("error getting last insert id: %w", err)
-	}
-	return id, nil
+	return user.ID, nil
 }
 
 func (repository MySQL) Update(user users.User) error {
-	if _, err := repository.db.Exec("UPDATE users SET username = ?, password = ? WHERE id = ?", user.Username, user.Password, user.ID); err != nil {
+	if err := repository.db.Save(&user).Error; err != nil {
 		return fmt.Errorf("error updating user: %w", err)
 	}
 	return nil
 }
 
 func (repository MySQL) Delete(id int64) error {
-	if _, err := repository.db.Exec("DELETE FROM users WHERE id = ?", id); err != nil {
+	if err := repository.db.Delete(&users.User{}, id).Error; err != nil {
 		return fmt.Errorf("error deleting user: %w", err)
 	}
 	return nil

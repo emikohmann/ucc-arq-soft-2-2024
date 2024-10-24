@@ -30,17 +30,17 @@ func main() {
 
 	// Rabbit
 	rabbitConfig := queues.RabbitConfig{
-		Username:  "user",
-		Password:  "password",
+		Username:  "root",
+		Password:  "root",
 		Host:      "localhost",
 		Port:      "5672",
 		QueueName: "hotels-news",
 	}
-	eventsQueue := queues.NewRabbit(rabbitConfig)
 
 	// Dependencies
 	mainRepository := repositories.NewMongo(mongoConfig)
 	cacheRepository := repositories.NewCache(cacheConfig)
+	eventsQueue := queues.NewRabbit(rabbitConfig)
 	service := services.NewService(mainRepository, cacheRepository, eventsQueue)
 	controller := controllers.NewController(service)
 
@@ -48,6 +48,8 @@ func main() {
 	router := gin.Default()
 	router.GET("/hotels/:id", controller.GetHotelByID)
 	router.POST("/hotels", controller.Create)
+	router.PUT("/hotels/:id", controller.Update)
+	router.DELETE("/hotels/:id", controller.Delete)
 	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("error running application: %w", err)
 	}
