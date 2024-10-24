@@ -1,4 +1,8 @@
-```
+### Run with 
+
+`docker compose up`
+
+<!--
 docker pull mysql:latest
 docker run -d -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=users-api -e MYSQL_PASSWORD=root --name mysql-container mysql:latest
 docker exec -t mysql-container bash
@@ -18,4 +22,4 @@ docker run -d -p 5671:5671 -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=
 
 docker pull solr:latest
 docker run -d -p 8983:8983 --name solr-container -v $(pwd)/search-api/solr-config:/opt/solr/server/solr/hotels solr:latest solr-create -c hotels
-```
+-->
