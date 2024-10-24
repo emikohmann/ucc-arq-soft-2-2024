@@ -40,7 +40,7 @@ func NewService(mainRepository, cacheRepository, memcachedRepository Repository,
 func (service Service) GetAll() ([]domain.User, error) {
 	users, err := service.mainRepository.GetAll()
 	if err != nil {
-		return nil, fmt.Errorf("error getting all users: %s", err.Error())
+		return nil, fmt.Errorf("error getting all users: %w", err)
 	}
 
 	result := make([]domain.User, 0)
@@ -60,19 +60,15 @@ func (service Service) GetByID(id int64) (domain.User, error) {
 	user, err := service.cacheRepository.GetByID(id)
 	if err == nil {
 		return service.convertUser(user), nil
-	} else {
-		fmt.Println(fmt.Sprintf("warning: error getting user by ID from cache: %s", err.Error()))
 	}
 
 	// Check in memcached
 	user, err = service.memcachedRepository.GetByID(id)
 	if err == nil {
 		if _, err := service.cacheRepository.Create(user); err != nil {
-			fmt.Println(fmt.Sprintf("warning: error caching user after memcached retrieval: %s", err.Error()))
+			return domain.User{}, fmt.Errorf("error caching user after memcached retrieval: %w", err)
 		}
 		return service.convertUser(user), nil
-	} else {
-		fmt.Println(fmt.Sprintf("warning: error getting user by ID from memcached: %s", err.Error()))
 	}
 
 	// Check in main repository
@@ -83,10 +79,10 @@ func (service Service) GetByID(id int64) (domain.User, error) {
 
 	// Save in cache and memcached
 	if _, err := service.cacheRepository.Create(user); err != nil {
-		fmt.Println(fmt.Sprintf("warning: error caching user after main retrieval: %s", err.Error()))
+		return domain.User{}, fmt.Errorf("error caching user after main retrieval: %w", err)
 	}
 	if _, err := service.memcachedRepository.Create(user); err != nil {
-		fmt.Println(fmt.Sprintf("warning: error saving user in memcached: %s", err.Error()))
+		return domain.User{}, fmt.Errorf("error saving user in memcached: %w", err)
 	}
 
 	return service.convertUser(user), nil
@@ -97,19 +93,15 @@ func (service Service) GetByUsername(username string) (domain.User, error) {
 	user, err := service.cacheRepository.GetByUsername(username)
 	if err == nil {
 		return service.convertUser(user), nil
-	} else {
-		fmt.Println(fmt.Sprintf("warning: error getting user by username from cache: %s", err.Error()))
 	}
 
 	// Check memcached
 	user, err = service.memcachedRepository.GetByUsername(username)
 	if err == nil {
 		if _, err := service.cacheRepository.Create(user); err != nil {
-			fmt.Println(fmt.Sprintf("warning: error caching user after memcached retrieval: %s", err.Error()))
+			return domain.User{}, fmt.Errorf("error caching user after memcached retrieval: %w", err)
 		}
 		return service.convertUser(user), nil
-	} else {
-		fmt.Println(fmt.Sprintf("warning: error getting user by username from memcached: %s", err.Error()))
 	}
 
 	// Check main repository
@@ -120,10 +112,10 @@ func (service Service) GetByUsername(username string) (domain.User, error) {
 
 	// Save in cache and memcached
 	if _, err := service.cacheRepository.Create(user); err != nil {
-		fmt.Println(fmt.Sprintf("warning: error caching user after main retrieval: %s", err.Error()))
+		return domain.User{}, fmt.Errorf("error caching user after main retrieval: %w", err)
 	}
 	if _, err := service.memcachedRepository.Create(user); err != nil {
-		fmt.Println(fmt.Sprintf("warning: error saving user in memcached: %s", err.Error()))
+		return domain.User{}, fmt.Errorf("error saving user in memcached: %w", err)
 	}
 
 	return service.convertUser(user), nil
@@ -141,16 +133,16 @@ func (service Service) Create(user domain.User) (int64, error) {
 	// Create in main repository
 	id, err := service.mainRepository.Create(newUser)
 	if err != nil {
-		return 0, fmt.Errorf("error creating user: %s", err.Error())
+		return 0, fmt.Errorf("error creating user: %w", err)
 	}
 
 	// Add to cache and memcached
 	newUser.ID = id
 	if _, err := service.cacheRepository.Create(newUser); err != nil {
-		fmt.Println(fmt.Sprintf("warning: error caching new user: %s", err.Error()))
+		return 0, fmt.Errorf("error caching new user: %w", err)
 	}
 	if _, err := service.memcachedRepository.Create(newUser); err != nil {
-		fmt.Println(fmt.Sprintf("warning: error saving new user in memcached: %s", err.Error()))
+		return 0, fmt.Errorf("error saving new user in memcached: %w", err)
 	}
 
 	return id, nil
@@ -164,7 +156,7 @@ func (service Service) Update(user domain.User) error {
 	} else {
 		existingUser, err := service.mainRepository.GetByID(user.ID)
 		if err != nil {
-			return fmt.Errorf("error retrieving existing user: %s", err.Error())
+			return fmt.Errorf("error retrieving existing user: %w", err)
 		}
 		passwordHash = existingUser.Password
 	}
@@ -176,7 +168,7 @@ func (service Service) Update(user domain.User) error {
 		Password: passwordHash,
 	})
 	if err != nil {
-		return fmt.Errorf("error updating user: %s", err.Error())
+		return fmt.Errorf("error updating user: %w", err)
 	}
 
 	// Update in cache and memcached
@@ -186,10 +178,10 @@ func (service Service) Update(user domain.User) error {
 		Password: passwordHash,
 	}
 	if err := service.cacheRepository.Update(updatedUser); err != nil {
-		fmt.Println(fmt.Sprintf("warning: error updating user in cache: %s", err.Error()))
+		return fmt.Errorf("error updating user in cache: %w", err)
 	}
 	if err := service.memcachedRepository.Update(updatedUser); err != nil {
-		fmt.Println(fmt.Sprintf("warning: error updating user in memcached: %s", err.Error()))
+		return fmt.Errorf("error updating user in memcached: %w", err)
 	}
 
 	return nil
@@ -199,15 +191,15 @@ func (service Service) Delete(id int64) error {
 	// Delete from main repository
 	err := service.mainRepository.Delete(id)
 	if err != nil {
-		return fmt.Errorf("error deleting user: %s", err.Error())
+		return fmt.Errorf("error deleting user: %w", err)
 	}
 
 	// Delete from cache and memcached
 	if err := service.cacheRepository.Delete(id); err != nil {
-		fmt.Println(fmt.Sprintf("warning: error deleting user from cache: %s", err.Error()))
+		return fmt.Errorf("error deleting user from cache: %w", err)
 	}
 	if err := service.memcachedRepository.Delete(id); err != nil {
-		fmt.Println(fmt.Sprintf("warning: error deleting user from memcached: %s", err.Error()))
+		return fmt.Errorf("error deleting user from memcached: %w", err)
 	}
 
 	return nil
@@ -220,31 +212,26 @@ func (service Service) Login(username string, password string) (domain.LoginResp
 	// Try to get user from cache repository first
 	user, err := service.cacheRepository.GetByUsername(username)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("warning: error getting user from cache repository: %s", err.Error()))
-
 		// If not found in cache, try to get user from memcached repository
 		user, err = service.memcachedRepository.GetByUsername(username)
 		if err != nil {
-			fmt.Println(fmt.Sprintf("warning: error getting user from memcached repository: %s", err.Error()))
-
 			// If not found in memcached, try to get user from the main repository (database)
 			user, err = service.mainRepository.GetByUsername(username)
 			if err != nil {
-				// If the user is not found in the main repository, return an error
 				return domain.LoginResponse{}, fmt.Errorf("error getting user by username from main repository: %w", err)
 			}
 
 			// Save the found user in both cache and memcached repositories
 			if _, err := service.cacheRepository.Create(user); err != nil {
-				fmt.Println(fmt.Sprintf("warning: error caching user in cache repository: %s", err.Error()))
+				return domain.LoginResponse{}, fmt.Errorf("error caching user in cache repository: %w", err)
 			}
 			if _, err := service.memcachedRepository.Create(user); err != nil {
-				fmt.Println(fmt.Sprintf("warning: error caching user in memcached repository: %s", err.Error()))
+				return domain.LoginResponse{}, fmt.Errorf("error caching user in memcached repository: %w", err)
 			}
 		} else {
 			// Save the found user in the cache repository for future access
 			if _, err := service.cacheRepository.Create(user); err != nil {
-				fmt.Println(fmt.Sprintf("warning: error caching user in cache repository: %s", err.Error()))
+				return domain.LoginResponse{}, fmt.Errorf("error caching user in cache repository: %w", err)
 			}
 		}
 	}

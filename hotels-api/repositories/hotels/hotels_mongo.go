@@ -93,7 +93,6 @@ func (repository Mongo) Update(ctx context.Context, hotel hotelsDAO.Hotel) error
 		return fmt.Errorf("error converting id to mongo ID: %w", err)
 	}
 
-	fmt.Println("About to update with", hotel)
 	// Create an update document
 	update := bson.M{}
 
@@ -123,7 +122,6 @@ func (repository Mongo) Update(ctx context.Context, hotel hotelsDAO.Hotel) error
 	}
 
 	filter := bson.M{"_id": objectID}
-	fmt.Println("Sending", update)
 	result, err := repository.client.Database(repository.database).Collection(repository.collection).UpdateOne(ctx, filter, bson.M{"$set": update})
 	if err != nil {
 		return fmt.Errorf("error updating document: %w", err)
